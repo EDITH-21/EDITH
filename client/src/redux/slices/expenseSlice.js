@@ -1,16 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { initialExpenses, expenseSummaryData } from '../../utils/mockData';
 
-const initialSalaryRecords = [
-  {
-    id: 's_1',
-    amount: 40000,
-    source: 'Primary Company Salary',
-    earnedDate: '2025-05-01',
-    paymentMethod: 'Net Banking',
-    notes: 'May 2025 Payday',
-  },
-];
+const initialSalaryRecords = [];
 
 const getStoredSalaryRecords = () => {
   try {
