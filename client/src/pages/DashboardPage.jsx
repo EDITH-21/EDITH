@@ -138,14 +138,16 @@ const DashboardPage = () => {
           subtitle={`${expenses.length} Logged`}
           icon={CreditCard}
         />
-        <StatCard
-          title="Budget Left"
-          value={`₹${budgetLeft.toLocaleString()}`}
-          subtitle={budgetAmount > 0 ? `Budget: ₹${budgetAmount.toLocaleString()}` : 'Click to set budget'}
-          icon={Wallet}
-          progress={budgetProgress}
-          accentColor="gold"
-        />
+        <div onClick={() => navigate('/expenses')} className="cursor-pointer">
+          <StatCard
+            title="Budget Left"
+            value={`₹${budgetLeft.toLocaleString()}`}
+            subtitle={budgetAmount > 0 ? `Budget: ₹${budgetAmount.toLocaleString()}` : 'Click to set budget'}
+            icon={Wallet}
+            progress={budgetProgress}
+            accentColor="gold"
+          />
+        </div>
         <StatCard
           title="Goals Progress"
           value={`${avgGoalProgress}%`}

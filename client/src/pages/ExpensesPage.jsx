@@ -26,6 +26,7 @@ import {
   Briefcase,
   Building,
   CheckCircle2,
+  Wallet,
 } from 'lucide-react';
 import {
   PieChart,
@@ -48,6 +49,7 @@ const ExpensesPage = () => {
   const [filterCategory, setFilterCategory] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
   // New expense form state
   const [title, setTitle] = useState('');
@@ -62,6 +64,10 @@ const ExpensesPage = () => {
   const [salaryEarnedDate, setSalaryEarnedDate] = useState('2025-05-01');
   const [salaryMethod, setSalaryMethod] = useState('Net Banking');
   const [salaryNotes, setSalaryNotes] = useState('May 2025 Payday');
+
+  // Set Budget Form state
+  const [customBudget, setCustomBudget] = useState(summary.budget || '');
+  const [customIncome, setCustomIncome] = useState(summary.totalIncome || '');
 
   const filteredExpenses = expenses.filter((e) => {
     const matchesSearch = e.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -109,10 +115,22 @@ const ExpensesPage = () => {
     setIsSalaryModalOpen(false);
   };
 
+  const handleSaveBudget = (e) => {
+    e.preventDefault();
+    dispatch(
+      setMonthlySalaryAndBudget({
+        budget: Number(customBudget),
+        income: Number(customIncome),
+      })
+    );
+    toast.success(`Monthly Budget set to ₹${Number(customBudget).toLocaleString()}!`);
+    setIsBudgetModalOpen(false);
+  };
+
   const handleClearExpenses = () => {
-    if (window.confirm('Are you sure you want to erase all expense transactions and salary history?')) {
+    if (window.confirm('Are you sure you want to erase all expense transactions, budget limits and salary history?')) {
       dispatch(clearAllExpenses());
-      toast.success('All data erased cleanly. You can now log your own salary and expenses!');
+      toast.success('All data erased cleanly. You can now set your custom budget & salary!');
     }
   };
 
@@ -120,19 +138,31 @@ const ExpensesPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Header matching screenshot 3 */}
+      {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-extrabold text-2xl lg:text-3xl text-white tracking-tight">
             Monthly Expenses & Salary Hub
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Track when your salary was earned, budget limits and daily spending.</p>
+          <p className="text-xs text-slate-400 mt-1">Set your own budget, track salary credit dates and daily spending.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setIsSalaryModalOpen(true)}
+            onClick={() => {
+              setCustomBudget(summary.budget || '');
+              setCustomIncome(summary.totalIncome || '');
+              setIsBudgetModalOpen(true);
+            }}
             className="flex items-center gap-2 px-3.5 py-2 bg-surface-card hover:bg-slate-800 border border-gold-500/50 rounded-xl text-xs font-semibold text-gold-400 transition-all shadow-gold-glow"
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>✏️ Set / Edit Budget</span>
+          </button>
+
+          <button
+            onClick={() => setIsSalaryModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-surface-card hover:bg-slate-800 border border-emerald-500/50 rounded-xl text-xs font-semibold text-emerald-400 transition-all"
           >
             <Briefcase className="w-3.5 h-3.5" />
             <span>+ Log Salary / Income Date</span>
@@ -146,7 +176,7 @@ const ExpensesPage = () => {
             <span>Export CSV</span>
           </button>
 
-          {(expenses.length > 0 || salaryRecords.length > 0) && (
+          {(expenses.length > 0 || salaryRecords.length > 0 || summary.budget > 0) && (
             <button
               onClick={handleClearExpenses}
               className="flex items-center gap-2 px-3 py-2 bg-crimson-950/60 hover:bg-crimson-900/80 border border-crimson-800/60 rounded-xl text-xs font-semibold text-crimson-400 transition-all"
@@ -167,7 +197,7 @@ const ExpensesPage = () => {
         </div>
       </div>
 
-      {/* Top Metric Cards Row matching screenshot 3 */}
+      {/* Metric Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl glass-panel relative group">
           <div className="flex items-center justify-between">
@@ -179,9 +209,9 @@ const ExpensesPage = () => {
           <h3 className="font-display text-2xl font-extrabold text-white mt-1">₹{summary.totalIncome.toLocaleString()}</h3>
           <button
             onClick={() => setIsSalaryModalOpen(true)}
-            className="text-[10px] font-semibold text-gold-400 hover:text-gold-300 mt-2 block"
+            className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 mt-2 block"
           >
-            🗓️ Log Salary Earned Date
+            + Log Salary Earned Date
           </button>
         </div>
 
@@ -211,11 +241,23 @@ const ExpensesPage = () => {
           </span>
         </div>
 
-        <div className="p-4 rounded-xl glass-panel flex items-center justify-between">
+        <div className="p-4 rounded-xl glass-panel relative group flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">BUDGET</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">BUDGET</span>
+              <button
+                onClick={() => {
+                  setCustomBudget(summary.budget || '');
+                  setCustomIncome(summary.totalIncome || '');
+                  setIsBudgetModalOpen(true);
+                }}
+                className="text-[10px] text-gold-400 hover:text-gold-300 font-bold underline"
+              >
+                Edit
+              </button>
+            </div>
             <h3 className="font-display text-2xl font-extrabold text-white mt-1">₹{summary.budget.toLocaleString()}</h3>
-            <span className="text-[11px] text-slate-400 mt-1 block">{budgetUsedPercentage}% of budget used</span>
+            <span className="text-[11px] text-slate-400 mt-1 block">{budgetUsedPercentage}% used</span>
           </div>
 
           <div className="relative w-14 h-14 flex items-center justify-center">
@@ -314,7 +356,7 @@ const ExpensesPage = () => {
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie
-                    data={summary.categoryBreakdown}
+                    data={summary.categoryBreakdown && summary.categoryBreakdown.length > 0 ? summary.categoryBreakdown : [{ name: 'No Expenses', amount: 1, color: '#1f1f2e' }]}
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
@@ -322,7 +364,7 @@ const ExpensesPage = () => {
                     paddingAngle={3}
                     dataKey="amount"
                   >
-                    {summary.categoryBreakdown.map((entry, index) => (
+                    {(summary.categoryBreakdown || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -335,7 +377,7 @@ const ExpensesPage = () => {
             </div>
 
             <div className="space-y-1.5 text-xs mt-2">
-              {summary.categoryBreakdown.slice(0, 4).map((c) => (
+              {(summary.categoryBreakdown || []).slice(0, 4).map((c) => (
                 <div key={c.name} className="flex items-center justify-between p-1.5 rounded-lg bg-surface-card/60">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
@@ -358,7 +400,7 @@ const ExpensesPage = () => {
 
           <div className="h-56">
             <ResponsiveContainer width="100%" height={210}>
-              <LineChart data={summary.spendingTrend}>
+              <LineChart data={summary.spendingTrend || []}>
                 <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} />
                 <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
                 <Tooltip
@@ -512,6 +554,45 @@ const ExpensesPage = () => {
           )}
         </div>
       </div>
+
+      {/* Set / Edit Budget Modal */}
+      <Modal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} title="Set / Edit Monthly Budget & Base Income">
+        <form onSubmit={handleSaveBudget} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Monthly Budget Limit (₹)</label>
+            <input
+              type="number"
+              required
+              value={customBudget}
+              onChange={(e) => setCustomBudget(e.target.value)}
+              placeholder="e.g. 20000"
+              className="w-full px-3 py-2 bg-surface-card border border-crimson-950 rounded-xl text-xs text-white focus:outline-none focus:border-crimson-600"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Set maximum target spending limit for this month.</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Base Monthly Income / Salary (₹)</label>
+            <input
+              type="number"
+              value={customIncome}
+              onChange={(e) => setCustomIncome(e.target.value)}
+              placeholder="e.g. 40000"
+              className="w-full px-3 py-2 bg-surface-card border border-crimson-950 rounded-xl text-xs text-white focus:outline-none focus:border-crimson-600"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Expected monthly salary or total base income.</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setIsBudgetModalOpen(false)} className="px-4 py-2 text-xs text-slate-400">
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 bg-gradient-to-r from-gold-600 to-gold-500 text-slate-950 text-xs font-bold rounded-xl shadow-gold-glow">
+              Save Budget Settings
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Log Salary / Income Date Modal */}
       <Modal isOpen={isSalaryModalOpen} onClose={() => setIsSalaryModalOpen(false)} title="Log Salary Earned / Credit Date">
