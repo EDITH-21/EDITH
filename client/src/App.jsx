@@ -13,12 +13,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TodoPage from './pages/TodoPage';
 import ExpensesPage from './pages/ExpensesPage';
-import CalendarPage from './pages/CalendarPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import NotesPage from './pages/NotesPage';
-import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import AIAssistantPage from './pages/AIAssistantPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Protected Route Guard
@@ -37,9 +32,9 @@ const App = () => {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#121218',
+            background: '#0f172a',
             color: '#fff',
-            border: '1px solid rgba(220, 38, 38, 0.4)',
+            border: '1px solid #1e293b',
             fontSize: '12px',
           },
         }}
@@ -61,14 +56,10 @@ const App = () => {
         >
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/todo" element={<TodoPage />} />
+          <Route path="/todos" element={<TodoPage />} />
+          <Route path="/todo" element={<Navigate to="/todos" replace />} />
           <Route path="/expenses" element={<ExpensesPage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/notes" element={<NotesPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/ai-assistant" element={<AIAssistantPage />} />
         </Route>
 
         {/* 404 Route */}

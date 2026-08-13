@@ -1,27 +1,45 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { initialUser } from '../../utils/mockData';
+
+const getStoredSettings = () => {
+  try {
+    const saved = localStorage.getItem('edith_settings');
+    if (saved && saved !== 'undefined' && saved !== 'null') {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return {
+    user: initialUser,
+    currency: 'INR',
+    theme: 'dark',
+  };
+};
+
+const saveSettingsToStorage = (settings) => {
+  try {
+    localStorage.setItem('edith_settings', JSON.stringify(settings));
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 const settingsSlice = createSlice({
   name: 'settings',
-  initialState: {
-    theme: 'dark-crimson',
-    language: 'en',
-    timezone: 'UTC+05:30',
-    notifications: {
-      email: true,
-      push: true,
-      taskReminders: true,
-      budgetAlerts: true,
-    },
-    privacy: {
-      shareAnalytics: false,
-    },
-  },
+  initialState: getStoredSettings(),
   reducers: {
-    updateSettings: (state, action) => {
-      return { ...state, ...action.payload };
+    updateProfile: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
+      saveSettingsToStorage(state);
+    },
+    updatePreferences: (state, action) => {
+      if (action.payload.currency) state.currency = action.payload.currency;
+      if (action.payload.theme) state.theme = action.payload.theme;
+      saveSettingsToStorage(state);
     },
   },
 });
 
-export const { updateSettings } = settingsSlice.actions;
+export const { updateProfile, updatePreferences } = settingsSlice.actions;
 export default settingsSlice.reducer;

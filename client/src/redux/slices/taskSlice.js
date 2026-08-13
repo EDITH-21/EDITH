@@ -4,7 +4,7 @@ import { initialTasks } from '../../utils/mockData';
 const getStoredTasks = () => {
   try {
     const saved = localStorage.getItem('edith_tasks');
-    if (saved && saved !== 'undefined') {
+    if (saved && saved !== 'undefined' && saved !== 'null') {
       return JSON.parse(saved);
     }
   } catch (e) {
@@ -26,26 +26,25 @@ const taskSlice = createSlice({
   initialState: {
     items: getStoredTasks(),
     filterStatus: 'All',
-    searchQuery: '',
-    loading: false,
   },
   reducers: {
     addTask: (state, action) => {
-      state.items.unshift({
+      const newTask = {
         id: `t_${Date.now()}`,
-        progress: 0,
-        labels: ['Work'],
+        completed: false,
+        status: 'To Do',
+        createdAt: new Date().toISOString().slice(0, 10),
+        priority: 'Medium',
         ...action.payload,
-      });
+      };
+      state.items.unshift(newTask);
       saveTasksToStorage(state.items);
     },
-    updateTaskStatus: (state, action) => {
-      const { id, status } = action.payload;
-      const task = state.items.find((t) => t.id === id);
+    toggleTaskStatus: (state, action) => {
+      const task = state.items.find((t) => t.id === action.payload);
       if (task) {
-        task.status = status;
-        if (status === 'Completed') task.progress = 100;
-        else if (status === 'To Do') task.progress = 0;
+        task.completed = !task.completed;
+        task.status = task.completed ? 'Completed' : 'To Do';
       }
       saveTasksToStorage(state.items);
     },
@@ -53,6 +52,9 @@ const taskSlice = createSlice({
       const index = state.items.findIndex((t) => t.id === action.payload.id);
       if (index !== -1) {
         state.items[index] = { ...state.items[index], ...action.payload };
+        if (action.payload.completed !== undefined) {
+          state.items[index].status = action.payload.completed ? 'Completed' : 'To Do';
+        }
       }
       saveTasksToStorage(state.items);
     },
@@ -67,20 +69,16 @@ const taskSlice = createSlice({
     setTaskFilter: (state, action) => {
       state.filterStatus = action.payload;
     },
-    setSearchQuery: (state, action) => {
-      state.searchQuery = action.payload;
-    },
   },
 });
 
 export const {
   addTask,
-  updateTaskStatus,
+  toggleTaskStatus,
   updateTask,
   deleteTask,
   clearAllTasks,
   setTaskFilter,
-  setSearchQuery,
 } = taskSlice.actions;
 
 export default taskSlice.reducer;

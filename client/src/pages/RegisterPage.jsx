@@ -26,31 +26,27 @@ const RegisterPage = () => {
             id: `user_${Date.now()}`,
             name,
             email,
-            role: 'user',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
           },
-          token: 'demo_jwt_token_new_user',
+          token: 'demo_token_new_user',
         })
       );
-      toast.success('Account created successfully! Welcome to EDITH.');
+      toast.success('Account created successfully!');
       navigate('/dashboard');
-    }, 600);
+    }, 400);
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display font-extrabold text-2xl lg:text-3xl text-white tracking-tight">
-          Create Account
-        </h2>
+        <h2 className="font-bold text-2xl text-white tracking-tight">Create Account</h2>
         <p className="text-xs text-slate-400 mt-1">
-          Join <span className="text-crimson-500 font-semibold">EDITH</span> and unlock ultimate productivity
+          Sign up to get started with your personal Todo & Expense Manager.
         </p>
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
-          <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
             Full Name
           </label>
           <div className="relative">
@@ -60,14 +56,14 @@ const RegisterPage = () => {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Shivam Sharma"
-              className="w-full pl-10 pr-4 py-3 bg-surface-card border border-crimson-950 focus:border-crimson-600 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none transition-all"
+              placeholder="Alex Smith"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-600 transition-all"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
             Email Address
           </label>
           <div className="relative">
@@ -78,13 +74,13 @@ const RegisterPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="youremail@example.com"
-              className="w-full pl-10 pr-4 py-3 bg-surface-card border border-crimson-950 focus:border-crimson-600 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-600 transition-all"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
             Password
           </label>
           <div className="relative">
@@ -95,7 +91,7 @@ const RegisterPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimum 6 characters"
-              className="w-full pl-10 pr-4 py-3 bg-surface-card border border-crimson-950 focus:border-crimson-600 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-600 transition-all"
             />
           </div>
         </div>
@@ -103,13 +99,13 @@ const RegisterPage = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 px-4 bg-gradient-to-r from-crimson-800 via-crimson-600 to-crimson-900 hover:from-crimson-700 hover:to-crimson-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-crimson-glow flex items-center justify-center gap-2 transition-all duration-300"
+          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
         >
           {loading ? (
             <span>Creating Account...</span>
           ) : (
             <>
-              <span>GET STARTED</span>
+              <span>Get Started</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}
@@ -118,7 +114,7 @@ const RegisterPage = () => {
 
       <p className="text-center text-xs text-slate-400">
         Already have an account?{' '}
-        <Link to="/login" className="text-crimson-400 hover:text-crimson-300 font-semibold">
+        <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold">
           Log In
         </Link>
       </p>
