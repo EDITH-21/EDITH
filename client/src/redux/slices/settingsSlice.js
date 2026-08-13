@@ -14,6 +14,7 @@ const getStoredSettings = () => {
     user: initialUser,
     currency: 'INR',
     theme: 'dark',
+    salary: 30000,
   };
 };
 
@@ -36,10 +37,15 @@ const settingsSlice = createSlice({
     updatePreferences: (state, action) => {
       if (action.payload.currency) state.currency = action.payload.currency;
       if (action.payload.theme) state.theme = action.payload.theme;
+      if (action.payload.salary !== undefined) state.salary = Number(action.payload.salary) || 0;
+      saveSettingsToStorage(state);
+    },
+    updateSalary: (state, action) => {
+      state.salary = Number(action.payload) || 0;
       saveSettingsToStorage(state);
     },
   },
 });
 
-export const { updateProfile, updatePreferences } = settingsSlice.actions;
+export const { updateProfile, updatePreferences, updateSalary } = settingsSlice.actions;
 export default settingsSlice.reducer;

@@ -6,15 +6,16 @@ import {
   LayoutDashboard,
   CheckSquare,
   CreditCard,
+  PiggyBank,
   Settings,
   LogOut,
-  Sparkles,
 } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/todos', label: 'Todos', icon: CheckSquare },
   { path: '/expenses', label: 'Expenses', icon: CreditCard },
+  { path: '/savings', label: 'Savings', icon: PiggyBank },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 

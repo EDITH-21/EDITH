@@ -13,6 +13,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TodoPage from './pages/TodoPage';
 import ExpensesPage from './pages/ExpensesPage';
+import SavingsPage from './pages/SavingsPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -59,6 +60,7 @@ const App = () => {
           <Route path="/todos" element={<TodoPage />} />
           <Route path="/todo" element={<Navigate to="/todos" replace />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/savings" element={<SavingsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 

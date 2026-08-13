@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { toggleTaskStatus } from '../redux/slices/taskSlice';
+import { updateSalary } from '../redux/slices/settingsSlice';
 import { formatCurrency } from '../utils/helpers';
+import Modal from '../components/common/Modal';
 import {
   CheckSquare,
   Clock,
@@ -12,14 +14,23 @@ import {
   ArrowRight,
   TrendingUp,
   Plus,
+  PiggyBank,
+  Wallet,
+  DollarSign,
+  Edit3,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const DashboardPage = () => {
   const { user } = useSelector((state) => state.auth);
   const { items: tasks } = useSelector((state) => state.tasks);
   const { items: expenses } = useSelector((state) => state.expenses);
-  const { currency } = useSelector((state) => state.settings);
+  const { items: savings } = useSelector((state) => state.savings);
+  const { currency, salary = 30000 } = useSelector((state) => state.settings);
   const dispatch = useDispatch();
+
+  const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+  const [newSalaryInput, setNewSalaryInput] = useState(salary);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const currentMonthYear = new Date().toISOString().slice(0, 7);
@@ -32,39 +43,38 @@ const DashboardPage = () => {
     return 'Good evening';
   };
 
-  // Real data calculations
+  // Task Calculations
   const todayTasks = tasks.filter((t) => t.dueDate === todayStr);
   const completedTasksCount = tasks.filter((t) => t.completed).length;
   const pendingTasksCount = tasks.filter((t) => !t.completed).length;
 
-  const todayExpensesSum = expenses
-    .filter((e) => e.date === todayStr)
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-
-  const monthExpensesSum = expenses
+  // Financial Calculations for Current Month
+  const currentMonthExpenses = expenses
     .filter((e) => (e.date || '').startsWith(currentMonthYear))
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-  // Pending / upcoming todos to display on dashboard
-  const displayTodos = tasks.filter((t) => !t.completed).slice(0, 5);
+  const currentMonthSavings = savings
+    .filter((s) => (s.month || '').startsWith(currentMonthYear))
+    .reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
 
-  // Recent 5 expenses
+  // Available Money Formula: Salary - Expenses - Savings
+  const availableMoney = Number(salary) - currentMonthExpenses - currentMonthSavings;
+
+  // Display items
+  const displayTodos = tasks.filter((t) => !t.completed).slice(0, 5);
   const recentExpenses = [...expenses].slice(0, 5);
 
-  // Category breakdown for simple expense overview
-  const categoryTotals = expenses.reduce((acc, e) => {
-    const cat = e.category || 'Other';
-    acc[cat] = (acc[cat] || 0) + (Number(e.amount) || 0);
-    return acc;
-  }, {});
-
-  const totalExpenseSumAll = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-
-  const categoryList = Object.keys(categoryTotals).map((cat) => ({
-    name: cat,
-    amount: categoryTotals[cat],
-    percentage: totalExpenseSumAll > 0 ? Math.round((categoryTotals[cat] / totalExpenseSumAll) * 100) : 0,
-  }));
+  const handleSaveSalary = (e) => {
+    e.preventDefault();
+    const num = Number(newSalaryInput);
+    if (isNaN(num) || num < 0) {
+      toast.error('Please enter a valid salary amount');
+      return;
+    }
+    dispatch(updateSalary(num));
+    toast.success('Monthly Salary updated!');
+    setIsSalaryModalOpen(false);
+  };
 
   const getPriorityBadgeClass = (priority) => {
     switch (priority) {
@@ -89,7 +99,7 @@ const DashboardPage = () => {
           <p className="text-xs text-slate-400 mt-1">Here's your overview for today.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/todos"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all"
@@ -99,78 +109,120 @@ const DashboardPage = () => {
           </Link>
           <Link
             to="/expenses"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Expense</span>
           </Link>
+          <Link
+            to="/savings"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-semibold rounded-xl transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Saving</span>
+          </Link>
         </div>
       </div>
 
-      {/* 5 Real Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {/* Today's Tasks */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+      {/* Financial Summary Cards Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Monthly Salary */}
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Today's Tasks</span>
-            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-800/60 text-indigo-400">
-              <CalendarIcon className="w-3.5 h-3.5" />
-            </div>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Salary</span>
+            <button
+              onClick={() => {
+                setNewSalaryInput(salary);
+                setIsSalaryModalOpen(true);
+              }}
+              className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+              title="Edit Salary"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <h3 className="font-bold text-2xl text-white mt-2">{todayTasks.length}</h3>
-          <p className="text-[10px] text-slate-400 mt-1">Due today</p>
+          <h3 className="font-bold text-xl text-white mt-2 truncate">
+            {formatCurrency(salary, currency)}
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-1">Monthly Base</p>
         </div>
 
-        {/* Completed Tasks */}
+        {/* Expenses (This Month) */}
         <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Completed</span>
-            <div className="p-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <h3 className="font-bold text-2xl text-emerald-400 mt-2">{completedTasksCount}</h3>
-          <p className="text-[10px] text-slate-400 mt-1">Total finished</p>
-        </div>
-
-        {/* Pending Tasks */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending</span>
-            <div className="p-1.5 rounded-lg bg-amber-950/80 border border-amber-800/60 text-amber-400">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <h3 className="font-bold text-2xl text-amber-400 mt-2">{pendingTasksCount}</h3>
-          <p className="text-[10px] text-slate-400 mt-1">Tasks remaining</p>
-        </div>
-
-        {/* Today's Expenses */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Today's Spent</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Expenses</span>
             <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-800/60 text-rose-400">
               <CreditCard className="w-3.5 h-3.5" />
             </div>
           </div>
-          <h3 className="font-bold text-xl text-white mt-2 truncate">
-            {formatCurrency(todayExpensesSum, currency)}
+          <h3 className="font-bold text-xl text-rose-400 mt-2 truncate">
+            {formatCurrency(currentMonthExpenses, currency)}
           </h3>
-          <p className="text-[10px] text-slate-400 mt-1">Spent today</p>
+          <p className="text-[10px] text-slate-400 mt-1">This Month</p>
         </div>
 
-        {/* This Month's Expenses */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between col-span-2 sm:col-span-1">
+        {/* Savings (This Month) */}
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">This Month</span>
-            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-800/60 text-indigo-400">
-              <TrendingUp className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Savings</span>
+            <div className="p-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-400">
+              <PiggyBank className="w-3.5 h-3.5" />
             </div>
           </div>
-          <h3 className="font-bold text-xl text-indigo-400 mt-2 truncate">
-            {formatCurrency(monthExpensesSum, currency)}
+          <h3 className="font-bold text-xl text-emerald-400 mt-2 truncate">
+            {formatCurrency(currentMonthSavings, currency)}
           </h3>
-          <p className="text-[10px] text-slate-400 mt-1">Total this month</p>
+          <p className="text-[10px] text-slate-400 mt-1">This Month</p>
+        </div>
+
+        {/* Available Money */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-800/60 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-indigo-300 uppercase tracking-wider">Available</span>
+            <div className="p-1.5 rounded-lg bg-indigo-900/60 text-indigo-300">
+              <Wallet className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <h3 className="font-bold text-xl text-white mt-2 truncate">
+            {formatCurrency(availableMoney, currency)}
+          </h3>
+          <p className="text-[10px] text-indigo-300 mt-1">Salary − Expenses − Savings</p>
+        </div>
+      </div>
+
+      {/* Task Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Today's Tasks */}
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase">Today's Tasks</span>
+            <h4 className="font-bold text-lg text-white mt-0.5">{todayTasks.length}</h4>
+          </div>
+          <div className="p-2 rounded-lg bg-indigo-950/60 text-indigo-400">
+            <CalendarIcon className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Completed Tasks */}
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase">Completed</span>
+            <h4 className="font-bold text-lg text-emerald-400 mt-0.5">{completedTasksCount}</h4>
+          </div>
+          <div className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Pending Tasks */}
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase">Pending</span>
+            <h4 className="font-bold text-lg text-amber-400 mt-0.5">{pendingTasksCount}</h4>
+          </div>
+          <div className="p-2 rounded-lg bg-amber-950/60 text-amber-400">
+            <Clock className="w-4 h-4" />
+          </div>
         </div>
       </div>
 
@@ -196,12 +248,12 @@ const DashboardPage = () => {
             {displayTodos.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl my-2">
                 <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                <p className="text-xs text-slate-400 font-medium">No pending tasks for today!</p>
+                <p className="text-xs text-slate-400 font-medium">No pending tasks!</p>
                 <Link
                   to="/todos"
                   className="inline-block mt-2 text-xs font-semibold text-indigo-400 hover:underline"
                 >
-                  + Add your first todo
+                  + Add a todo
                 </Link>
               </div>
             ) : (
@@ -251,7 +303,7 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-bold text-base text-white">Recent Expenses</h2>
-                <p className="text-[11px] text-slate-400">Latest logged transactions</p>
+                <p className="text-[11px] text-slate-400">Latest transactions</p>
               </div>
               <Link
                 to="/expenses"
@@ -266,7 +318,6 @@ const DashboardPage = () => {
               <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl my-2">
                 <CreditCard className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                 <p className="text-xs text-slate-400 font-medium">No expenses yet</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Add your first expense to start tracking.</p>
                 <Link
                   to="/expenses"
                   className="inline-block mt-3 text-xs font-semibold text-indigo-400 hover:underline"
@@ -302,42 +353,44 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Simple Monthly Expense Overview Section */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Edit Salary Modal */}
+      <Modal isOpen={isSalaryModalOpen} onClose={() => setIsSalaryModalOpen(false)} title="Set Monthly Salary">
+        <form onSubmit={handleSaveSalary} className="space-y-4">
           <div>
-            <h2 className="font-bold text-base text-white">Monthly Category Summary</h2>
-            <p className="text-[11px] text-slate-400">Spending breakdown by category</p>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Monthly Salary (₹)
+            </label>
+            <input
+              type="number"
+              required
+              min="0"
+              value={newSalaryInput}
+              onChange={(e) => setNewSalaryInput(e.target.value)}
+              placeholder="e.g. 30000"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Used to calculate Available Money = Salary − Expenses − Savings.
+            </p>
           </div>
-          <span className="text-xs font-bold text-indigo-400">
-            Total: {formatCurrency(totalExpenseSumAll, currency)}
-          </span>
-        </div>
 
-        {categoryList.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 text-xs italic">
-            No expenses logged yet. Add your first expense to see category insights.
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsSalaryModalOpen(false)}
+              className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md"
+            >
+              Save Salary
+            </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {categoryList.map((cat) => (
-              <div key={cat.name} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-slate-300">{cat.name}</span>
-                  <span className="font-bold text-white">{formatCurrency(cat.amount, currency)}</span>
-                </div>
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${cat.percentage}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">{cat.percentage}% of total</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </form>
+      </Modal>
     </div>
   );
 };

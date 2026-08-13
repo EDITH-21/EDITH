@@ -3,20 +3,22 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile, updatePreferences } from '../redux/slices/settingsSlice';
 import { clearAllTasks } from '../redux/slices/taskSlice';
 import { clearAllExpenses } from '../redux/slices/expenseSlice';
-import { exportExpensesToCSV } from '../utils/helpers';
-import { User, DollarSign, Download, Trash2, Save, Moon, Check } from 'lucide-react';
+import { clearAllSavings } from '../redux/slices/savingSlice';
+import { User, DollarSign, Download, Trash2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SettingsPage = () => {
-  const { user, currency, theme } = useSelector((state) => state.settings);
+  const { user, currency, theme, salary = 30000 } = useSelector((state) => state.settings);
   const { items: tasks } = useSelector((state) => state.tasks);
   const { items: expenses } = useSelector((state) => state.expenses);
+  const { items: savings } = useSelector((state) => state.savings);
   const dispatch = useDispatch();
 
   const [name, setName] = useState(user?.name || 'Alex');
   const [email, setEmail] = useState(user?.email || 'alex@example.com');
   const [selectedCurrency, setSelectedCurrency] = useState(currency || 'INR');
   const [selectedTheme, setSelectedTheme] = useState(theme || 'dark');
+  const [salaryInput, setSalaryInput] = useState(salary);
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
@@ -26,16 +28,23 @@ const SettingsPage = () => {
 
   const handleSavePreferences = (e) => {
     e.preventDefault();
-    dispatch(updatePreferences({ currency: selectedCurrency, theme: selectedTheme }));
-    toast.success('Preferences saved!');
+    dispatch(
+      updatePreferences({
+        currency: selectedCurrency,
+        theme: selectedTheme,
+        salary: Number(salaryInput),
+      })
+    );
+    toast.success('Preferences & Salary saved!');
   };
 
   const handleExportData = () => {
     const backupData = {
       user: { name, email },
-      preferences: { currency: selectedCurrency, theme: selectedTheme },
+      preferences: { currency: selectedCurrency, theme: selectedTheme, salary },
       tasks,
       expenses,
+      savings,
       exportDate: new Date().toISOString(),
     };
 
@@ -53,13 +62,15 @@ const SettingsPage = () => {
   const handleClearAllData = () => {
     if (
       window.confirm(
-        'Are you sure you want to clear all tasks and expenses? This action cannot be undone.'
+        'Are you sure you want to clear all tasks, expenses, and savings? This action cannot be undone.'
       )
     ) {
       dispatch(clearAllTasks());
       dispatch(clearAllExpenses());
+      dispatch(clearAllSavings());
       localStorage.removeItem('edith_tasks');
       localStorage.removeItem('edith_expenses');
+      localStorage.removeItem('edith_savings');
       toast.success('All application data cleared!');
     }
   };
@@ -120,15 +131,29 @@ const SettingsPage = () => {
         </form>
       </div>
 
-      {/* 2. Preferences Section */}
+      {/* 2. Preferences & Financial Settings */}
       <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
           <DollarSign className="w-4 h-4 text-indigo-400" />
-          <h2 className="font-bold text-sm text-white">App Preferences</h2>
+          <h2 className="font-bold text-sm text-white">App Preferences & Salary</h2>
         </div>
 
         <form onSubmit={handleSavePreferences} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                Monthly Salary (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={salaryInput}
+                onChange={(e) => setSalaryInput(e.target.value)}
+                placeholder="30000"
+                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
+              />
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
                 Currency
@@ -185,7 +210,7 @@ const SettingsPage = () => {
             <div>
               <h3 className="font-semibold text-xs text-slate-200">Export Backup Data</h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Download a complete JSON backup file of your tasks and expenses.
+                Download a complete JSON backup file of your tasks, expenses, and savings.
               </p>
             </div>
             <button
@@ -201,7 +226,7 @@ const SettingsPage = () => {
             <div>
               <h3 className="font-semibold text-xs text-rose-400">Clear Application Data</h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Permanently delete all stored todos and expenses to start completely fresh.
+                Permanently delete all stored todos, expenses, and savings to start fresh.
               </p>
             </div>
             <button
