@@ -47,9 +47,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <div>
           {/* Brand Logo Header */}
           <div className="py-3 px-2 mb-6 border-b border-slate-800/60 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-600/30">
-              E
-            </div>
+            <img
+              src="/logo.png"
+              alt="EDITH Logo"
+              className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+            />
             <div>
               <h1 className="font-bold text-base text-white tracking-tight">EDITH</h1>
               <p className="text-[11px] text-slate-400">Todo & Expense Manager</p>

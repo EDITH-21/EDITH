@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { CheckSquare, CreditCard, ShieldCheck } from 'lucide-react';
+import { CheckSquare, CreditCard, ShieldCheck, PiggyBank } from 'lucide-react';
 
 const AuthLayout = () => {
   return (
@@ -9,15 +9,21 @@ const AuthLayout = () => {
         {/* Left Hero Section */}
         <div className="p-8 lg:p-12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900/50">
           <div>
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl mb-6 shadow-md shadow-indigo-600/30">
-              E
+            <div className="flex items-center gap-3 mb-6">
+              <img
+                src="/logo.png"
+                alt="EDITH Logo"
+                className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+              />
+              <div>
+                <h1 className="font-bold text-3xl text-white tracking-tight">EDITH</h1>
+                <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                  Personal Todo & Expense Manager
+                </p>
+              </div>
             </div>
-            <h1 className="font-bold text-3xl text-white tracking-tight">EDITH</h1>
-            <p className="text-xs font-semibold text-indigo-400 mt-1 uppercase tracking-wider">
-              Personal Todo & Expense Manager
-            </p>
-            <p className="text-xs text-slate-400 mt-4 leading-relaxed">
-              Keep track of what needs to get done and manage your personal spending in one simple, calm interface.
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Keep track of what needs to get done, manage your personal spending, and build your savings in one clean, simple interface.
             </p>
           </div>
 
@@ -25,16 +31,24 @@ const AuthLayout = () => {
             <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <CheckSquare className="w-5 h-5 text-indigo-400 shrink-0" />
               <div>
-                <h4 className="text-xs font-semibold text-slate-200">Organize Todos</h4>
-                <p className="text-[10px] text-slate-400">Track tasks with priorities & due dates</p>
+                <h4 className="text-xs font-semibold text-slate-200">Organize Todos & Reminders</h4>
+                <p className="text-[10px] text-slate-400">Task priorities, due dates & Chrome notifications</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <CreditCard className="w-5 h-5 text-indigo-400 shrink-0" />
               <div>
-                <h4 className="text-xs font-semibold text-slate-200">Track Expenses</h4>
-                <p className="text-[10px] text-slate-400">Record daily spending & monthly totals</p>
+                <h4 className="text-xs font-semibold text-slate-200">Track Monthly Expenses</h4>
+                <p className="text-[10px] text-slate-400">Record daily spending & month-by-month totals</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <PiggyBank className="w-5 h-5 text-emerald-400 shrink-0" />
+              <div>
+                <h4 className="text-xs font-semibold text-slate-200">Build Your Savings</h4>
+                <p className="text-[10px] text-slate-400">Monitor monthly savings & available balance</p>
               </div>
             </div>
           </div>
