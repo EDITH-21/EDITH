@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { initialUser } from '../../utils/mockData';
 
 const getInitialUser = () => {
   try {
@@ -10,7 +9,7 @@ const getInitialUser = () => {
   } catch (e) {
     console.error('Failed to parse edith_user from localStorage', e);
   }
-  return initialUser;
+  return null;
 };
 
 const getInitialToken = () => {
@@ -22,15 +21,18 @@ const getInitialToken = () => {
   } catch (e) {
     // fallback
   }
-  return 'demo_jwt_token_edith';
+  return null;
 };
+
+const initialUserObj = getInitialUser();
+const initialTokenObj = getInitialToken();
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: getInitialUser(),
-    token: getInitialToken(),
-    isAuthenticated: true, // Default to true for instant demo access
+    user: initialUserObj,
+    token: initialTokenObj,
+    isAuthenticated: Boolean(initialUserObj && initialTokenObj),
     loading: false,
     error: null,
   },
@@ -43,6 +45,13 @@ const authSlice = createSlice({
       try {
         localStorage.setItem('edith_user', JSON.stringify(action.payload.user));
         localStorage.setItem('edith_token', action.payload.token);
+
+        // Also save user to registered accounts list if not already saved
+        const users = JSON.parse(localStorage.getItem('edith_users') || '[]');
+        if (!users.some((u) => u.email === action.payload.user.email)) {
+          users.push(action.payload.user);
+          localStorage.setItem('edith_users', JSON.stringify(users));
+        }
       } catch (e) {
         console.error(e);
       }

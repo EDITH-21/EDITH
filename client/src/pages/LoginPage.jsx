@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('alex@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -16,21 +16,39 @@ const LoginPage = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error('Please enter your email and password');
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
-      setLoading(false);
+      // Validate against registered accounts in localStorage
+      const users = JSON.parse(localStorage.getItem('edith_users') || '[]');
+      const matchedUser = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+
+      if (matchedUser && matchedUser.password && matchedUser.password !== password) {
+        setLoading(false);
+        toast.error('Incorrect password. Please try again.');
+        return;
+      }
+
+      const activeUser = matchedUser || {
+        id: `user_${Date.now()}`,
+        name: email.split('@')[0],
+        email: email.trim().toLowerCase(),
+      };
+
       dispatch(
         loginSuccess({
-          user: {
-            id: 'user_1',
-            name: 'Alex',
-            email,
-          },
-          token: 'demo_token_edith',
+          user: activeUser,
+          token: `jwt_${Date.now()}`,
         })
       );
-      toast.success('Welcome back to EDITH!');
+
+      setLoading(false);
+      toast.success(`Welcome back, ${activeUser.name}!`);
       navigate('/dashboard');
     }, 400);
   };
@@ -47,7 +65,7 @@ const LoginPage = () => {
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-            Email Address
+            Email Address *
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -64,7 +82,7 @@ const LoginPage = () => {
 
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-            Password
+            Password *
           </label>
           <div className="relative">
             <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -105,7 +123,7 @@ const LoginPage = () => {
       <p className="text-center text-xs text-slate-400">
         Don't have an account?{' '}
         <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold">
-          Sign Up
+          Create Account
         </Link>
       </p>
     </div>

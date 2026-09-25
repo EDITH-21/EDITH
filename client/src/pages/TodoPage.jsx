@@ -5,7 +5,6 @@ import {
   toggleTaskStatus,
   updateTask,
   deleteTask,
-  clearAllTasks,
 } from '../redux/slices/taskSlice';
 import Modal from '../components/common/Modal';
 import {
@@ -15,7 +14,10 @@ import {
   Trash2,
   Edit3,
   Calendar as CalendarIcon,
-  Check,
+  Share2,
+  Bell,
+  User,
+  Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -33,6 +35,45 @@ const TodoPage = () => {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('Medium');
+  const [assignedTo, setAssignedTo] = useState('');
+
+  // Notification Permission State
+  const [notificationsAllowed, setNotificationsAllowed] = useState(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission === 'granted'
+      : false
+  );
+
+  const requestNotificationPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast.error('Browser notifications are not supported on your browser.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsAllowed(true);
+        toast.success('Chrome desktop notifications enabled!');
+        new Notification('EDITH Reminders Enabled', {
+          body: 'You will now receive native desktop reminders for your todos!',
+          icon: '/favicon.ico',
+        });
+      } else {
+        toast.error('Notification permission denied');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const triggerDesktopNotification = (taskTitle, due) => {
+    if (notificationsAllowed && typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification(`📌 Todo Reminder: ${taskTitle}`, {
+        body: due ? `Due Date: ${due}` : 'Reminder alert for your task.',
+      });
+    }
+  };
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'Active') return !t.completed;
@@ -44,20 +85,26 @@ const TodoPage = () => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    dispatch(
-      addTask({
-        title: title.trim(),
-        description: description.trim(),
-        dueDate: dueDate || '',
-        priority,
-      })
-    );
+    const newTask = {
+      title: title.trim(),
+      description: description.trim(),
+      dueDate: dueDate || '',
+      priority,
+      assignedTo: assignedTo.trim(),
+    };
 
+    dispatch(addTask(newTask));
     toast.success('Todo created!');
+
+    if (dueDate && notificationsAllowed) {
+      triggerDesktopNotification(title.trim(), dueDate);
+    }
+
     setTitle('');
     setDescription('');
     setDueDate('');
     setPriority('Medium');
+    setAssignedTo('');
     setIsAddModalOpen(false);
   };
 
@@ -67,6 +114,7 @@ const TodoPage = () => {
     setDescription(task.description || '');
     setDueDate(task.dueDate || '');
     setPriority(task.priority || 'Medium');
+    setAssignedTo(task.assignedTo || '');
     setIsEditModalOpen(true);
   };
 
@@ -81,12 +129,24 @@ const TodoPage = () => {
         description: description.trim(),
         dueDate,
         priority,
+        assignedTo: assignedTo.trim(),
       })
     );
 
     toast.success('Todo updated!');
     setIsEditModalOpen(false);
     setEditingTask(null);
+  };
+
+  const handleShareTask = (task) => {
+    const shareText = `📋 *Task:* ${task.title}\n⚡ *Priority:* ${task.priority || 'Medium'}\n📅 *Due Date:* ${
+      task.dueDate || 'No date'
+    }${task.assignedTo ? `\n👤 *Assigned To:* ${task.assignedTo}` : ''}${
+      task.description ? `\n📝 *Notes:* ${task.description}` : ''
+    }`;
+
+    navigator.clipboard.writeText(shareText);
+    toast.success('Task details copied to clipboard! Share with your team.');
   };
 
   const getPriorityBadgeClass = (p) => {
@@ -110,19 +170,33 @@ const TodoPage = () => {
           <p className="text-xs text-slate-400 mt-1">Keep track of what needs to get done.</p>
         </div>
 
-        <button
-          onClick={() => {
-            setTitle('');
-            setDescription('');
-            setDueDate('');
-            setPriority('Medium');
-            setIsAddModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Add Todo</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {!notificationsAllowed && (
+            <button
+              onClick={requestNotificationPermission}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-400 text-xs font-semibold rounded-xl transition-all"
+              title="Enable Chrome Reminders"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Enable Chrome Reminders</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setTitle('');
+              setDescription('');
+              setDueDate('');
+              setPriority('Medium');
+              setAssignedTo('');
+              setIsAddModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Add Todo</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -202,17 +276,33 @@ const TodoPage = () => {
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed">{todo.description}</p>
                   )}
 
-                  {todo.dueDate && (
-                    <div className="flex items-center gap-1 mt-2 text-[11px] text-slate-500 font-mono">
-                      <CalendarIcon className="w-3 h-3 text-slate-400" />
-                      <span>Due: {todo.dueDate}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 flex-wrap">
+                    {todo.dueDate && (
+                      <span className="flex items-center gap-1 font-mono">
+                        <CalendarIcon className="w-3 h-3 text-slate-400" />
+                        Due: {todo.dueDate}
+                      </span>
+                    )}
+
+                    {todo.assignedTo && (
+                      <span className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded text-indigo-300">
+                        <User className="w-3 h-3" />
+                        Assigned: {todo.assignedTo}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Edit & Delete Actions */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              {/* Actions: Share, Edit & Delete */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleShareTask(todo)}
+                  className="p-1.5 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-800 transition-colors"
+                  title="Share Todo to Team"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => handleOpenEdit(todo)}
                   className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
@@ -248,7 +338,7 @@ const TodoPage = () => {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Finish client proposal..."
+              placeholder="e.g. Finish project roadmap..."
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
             />
           </div>
@@ -260,7 +350,7 @@ const TodoPage = () => {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add details or notes..."
+              placeholder="Add task notes or details..."
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600 h-20"
             />
           </div>
@@ -292,6 +382,19 @@ const TodoPage = () => {
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Assign to Team Member (Optional)
+            </label>
+            <input
+              type="text"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              placeholder="e.g. Alex, Priya"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -366,6 +469,18 @@ const TodoPage = () => {
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Assign to Team Member
+            </label>
+            <input
+              type="text"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

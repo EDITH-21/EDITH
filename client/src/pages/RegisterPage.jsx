@@ -16,21 +16,46 @@ const RegisterPage = () => {
 
   const handleRegister = (e) => {
     e.preventDefault();
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
-      setLoading(false);
+      // Check existing accounts
+      const existingUsers = JSON.parse(localStorage.getItem('edith_users') || '[]');
+      if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+        setLoading(false);
+        toast.error('An account with this email already exists. Please log in.');
+        return;
+      }
+
+      const newUser = {
+        id: `user_${Date.now()}`,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password, // In real app hashed on server
+      };
+
+      existingUsers.push(newUser);
+      localStorage.setItem('edith_users', JSON.stringify(existingUsers));
+
       dispatch(
         loginSuccess({
-          user: {
-            id: `user_${Date.now()}`,
-            name,
-            email,
-          },
-          token: 'demo_token_new_user',
+          user: newUser,
+          token: `jwt_${Date.now()}`,
         })
       );
-      toast.success('Account created successfully!');
+
+      setLoading(false);
+      toast.success('Account created successfully! Welcome to EDITH.');
       navigate('/dashboard');
     }, 400);
   };
@@ -47,7 +72,7 @@ const RegisterPage = () => {
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-            Full Name
+            Full Name *
           </label>
           <div className="relative">
             <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -56,7 +81,7 @@ const RegisterPage = () => {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Alex Smith"
+              placeholder="e.g. Alex Smith"
               className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-600 transition-all"
             />
           </div>
@@ -64,7 +89,7 @@ const RegisterPage = () => {
 
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-            Email Address
+            Email Address *
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -81,7 +106,7 @@ const RegisterPage = () => {
 
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-            Password
+            Password *
           </label>
           <div className="relative">
             <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />

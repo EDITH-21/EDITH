@@ -4,7 +4,6 @@ import {
   addExpense,
   updateExpense,
   deleteExpense,
-  clearAllExpenses,
 } from '../redux/slices/expenseSlice';
 import { formatCurrency, exportExpensesToCSV } from '../utils/helpers';
 import Modal from '../components/common/Modal';
@@ -15,6 +14,7 @@ import {
   CreditCard,
   Download,
   Calendar as CalendarIcon,
+  Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,7 +25,12 @@ const ExpensesPage = () => {
   const { currency } = useSelector((state) => state.settings);
   const dispatch = useDispatch();
 
-  const [filterTime, setFilterTime] = useState('All'); // All | This week | This month
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentMonthStr = new Date().toISOString().slice(0, 7); // "2026-09"
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthStr); // "2026-09" or "All"
+  const [filterCategory, setFilterCategory] = useState('All');
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -34,34 +39,36 @@ const ExpensesPage = () => {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayStr);
   const [note, setNote] = useState('');
 
-  // Date Filters
-  const today = new Date();
-  const currentMonthStr = today.toISOString().slice(0, 7);
-
-  const getWeekStartDate = () => {
-    const d = new Date(today);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    return new Date(d.setDate(diff)).toISOString().slice(0, 10);
+  // Format "2026-09" to "September 2026"
+  const formatMonthName = (monthStr) => {
+    if (!monthStr || monthStr === 'All') return 'All Months';
+    try {
+      const [year, m] = monthStr.split('-');
+      const d = new Date(Number(year), Number(m) - 1, 1);
+      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    } catch (e) {
+      return monthStr;
+    }
   };
 
-  const weekStartStr = getWeekStartDate();
+  // Get unique months list from expenses for filter dropdown
+  const availableMonths = Array.from(
+    new Set([currentMonthStr, ...expenses.map((e) => (e.date || '').slice(0, 7)).filter(Boolean)])
+  ).sort().reverse();
 
+  // Filter expenses by selectedMonth & filterCategory
   const filteredExpenses = expenses.filter((e) => {
-    if (filterTime === 'This week') {
-      return (e.date || '') >= weekStartStr;
-    }
-    if (filterTime === 'This month') {
-      return (e.date || '').startsWith(currentMonthStr);
-    }
-    return true;
+    const matchesMonth = selectedMonth === 'All' || (e.date || '').startsWith(selectedMonth);
+    const matchesCategory = filterCategory === 'All' || e.category === filterCategory;
+    return matchesMonth && matchesCategory;
   });
 
-  const monthTotal = expenses
-    .filter((e) => (e.date || '').startsWith(currentMonthStr))
+  // Calculate Month Total
+  const selectedMonthTotal = expenses
+    .filter((e) => selectedMonth === 'All' || (e.date || '').startsWith(selectedMonth))
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   const handleCreateExpense = (e) => {
@@ -73,7 +80,7 @@ const ExpensesPage = () => {
         title: title.trim(),
         amount: Number(amount),
         category,
-        date: date || new Date().toISOString().slice(0, 10),
+        date: date || todayStr,
         note: note.trim(),
       })
     );
@@ -90,7 +97,7 @@ const ExpensesPage = () => {
     setTitle(exp.title);
     setAmount(exp.amount);
     setCategory(exp.category || 'Food');
-    setDate(exp.date || new Date().toISOString().slice(0, 10));
+    setDate(exp.date || todayStr);
     setNote(exp.note || '');
     setIsEditModalOpen(true);
   };
@@ -121,13 +128,15 @@ const ExpensesPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-bold text-2xl lg:text-3xl text-white tracking-tight">Expenses</h1>
-          <p className="text-xs text-slate-400 mt-1">Track where your money goes.</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Track where your money goes for every month.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {expenses.length > 0 && (
             <button
-              onClick={() => exportExpensesToCSV(expenses)}
+              onClick={() => exportExpensesToCSV(filteredExpenses)}
               className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-medium rounded-xl transition-all"
               title="Export CSV"
             >
@@ -141,7 +150,7 @@ const ExpensesPage = () => {
               setTitle('');
               setAmount('');
               setCategory('Food');
-              setDate(new Date().toISOString().slice(0, 10));
+              setDate(todayStr);
               setNote('');
               setIsAddModalOpen(true);
             }}
@@ -153,51 +162,91 @@ const ExpensesPage = () => {
         </div>
       </div>
 
-      {/* Monthly Total Summary Banner */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-800/40 flex items-center justify-between">
+      {/* Month Selector Banner & Total Summary */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Total this month
-          </span>
-          <h2 className="font-bold text-2xl lg:text-3xl text-white mt-0.5">
-            {formatCurrency(monthTotal, currency)}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Total Spending for
+            </span>
+            <span className="text-xs font-bold text-indigo-400 bg-indigo-950/80 px-2.5 py-0.5 rounded-lg border border-indigo-800/60">
+              {formatMonthName(selectedMonth)}
+            </span>
+          </div>
+          <h2 className="font-bold text-2xl lg:text-3xl text-white mt-1">
+            {formatCurrency(selectedMonthTotal, currency)}
           </h2>
         </div>
 
-        <div className="p-3 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
-          <CreditCard className="w-6 h-6" />
+        {/* Month Selector Input */}
+        <div className="flex items-center gap-2 bg-slate-950/80 p-2 rounded-xl border border-slate-800">
+          <CalendarIcon className="w-4 h-4 text-indigo-400 ml-1" />
+          <input
+            type="month"
+            value={selectedMonth === 'All' ? currentMonthStr : selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-transparent text-xs text-white focus:outline-none cursor-pointer font-medium"
+          />
+          {selectedMonth !== 'All' && (
+            <button
+              onClick={() => setSelectedMonth('All')}
+              className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800"
+            >
+              All
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          {['All', 'This week', 'This month'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilterTime(tab)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterTime === tab
-                  ? 'bg-indigo-600 text-white font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
+      {/* Filters Bar: Month Dropdown & Category Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Month Dropdown Quick Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-slate-200 focus:outline-none text-xs font-medium"
             >
-              {tab}
-            </button>
-          ))}
+              <option value="All">All Months</option>
+              {availableMonths.map((m) => (
+                <option key={m} value={m}>
+                  {formatMonthName(m)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="bg-transparent text-slate-200 focus:outline-none text-xs font-medium"
+            >
+              <option value="All">All Categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <span className="text-xs text-slate-400 font-medium">
-          {filteredExpenses.length} transaction{filteredExpenses.length === 1 ? '' : 's'}
+          {filteredExpenses.length} expense{filteredExpenses.length === 1 ? '' : 's'} shown
         </span>
       </div>
 
       {/* Expense List / Table */}
       {filteredExpenses.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <CreditCard className="w-10 h-10 mx-auto mb-3 text-slate-600" />
-          <h3 className="text-sm font-semibold text-slate-300">No expenses yet</h3>
-          <p className="text-xs text-slate-400 mt-1">Add your first expense to start tracking.</p>
+        <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
+          <CreditCard className="w-10 h-10 mx-auto text-slate-600" />
+          <h3 className="text-sm font-semibold text-slate-300">No expenses for {formatMonthName(selectedMonth)}</h3>
+          <p className="text-xs text-slate-400">Log your expenses with date and month tracking.</p>
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -205,9 +254,9 @@ const ExpensesPage = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/60">
-                  <th className="py-3 px-4">Expense</th>
+                  <th className="py-3 px-4">Expense Name</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Date / Month</th>
                   <th className="py-3 px-4 text-right">Amount</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -224,11 +273,11 @@ const ExpensesPage = () => {
                         {exp.category || 'Other'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                    <td className="py-3.5 px-4 text-slate-300 font-mono text-[11px]">
                       {exp.date}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-slate-100">
-                      {formatCurrency(exp.amount, currency)}
+                    <td className="py-3.5 px-4 text-right font-bold text-rose-400">
+                      -{formatCurrency(exp.amount, currency)}
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -271,7 +320,7 @@ const ExpensesPage = () => {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Lunch at restaurant, Metro card refill"
+              placeholder="e.g. Grocery shopping, Gas bill"
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
             />
           </div>
@@ -314,10 +363,11 @@ const ExpensesPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-                Date
+                Date / Month *
               </label>
               <input
                 type="date"
+                required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
@@ -332,7 +382,7 @@ const ExpensesPage = () => {
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional details..."
+                placeholder="Optional notes..."
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-600"
               />
             </div>
@@ -409,10 +459,11 @@ const ExpensesPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-                Date
+                Date / Month
               </label>
               <input
                 type="date"
+                required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
